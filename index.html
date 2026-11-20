@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Usthad Food Supply Tracker — College Coordination & Analytics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(12px);
+      border: 1px solid #e2e8f0;
+    }
+    .tab-active {
+      background-color: #065f46;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(6, 95, 70, 0.22);
+    }
+    .meal-pill-active {
+      background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+      color: white;
+      border-color: #065f46;
+      box-shadow: 0 6px 16px -4px rgba(6, 95, 70, 0.35);
+    }
+    .admin-glow {
+      box-shadow: 0 0 0 2px #f59e0b, 0 8px 20px -4px rgba(245, 158, 11, 0.25);
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- LOGIN OVERLAY -->
+  <div id="login-screen" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
+      <div class="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 p-7 text-white text-center relative overflow-hidden">
+        <div class="w-14 h-14 rounded-2xl bg-amber-400/20 border border-amber-300/30 flex items-center justify-center mx-auto mb-3 text-amber-300">
+          <i data-lucide="utensils-crossed" class="w-7 h-7"></i>
+        </div>
+        <h1 class="text-2xl font-extrabold tracking-tight">Usthad Food Supply</h1>
+        <p class="text-emerald-200 text-xs mt-1 font-medium">College Dining Coordination & Effort Tracker</p>
+      </div>
+
+      <div class="p-7">
+        <!-- Role Selector Tabs -->
+        <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl mb-6">
+          <button id="login-tab-leader" onclick="setLoginRole('leader')" class="py-2.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 bg-white text-emerald-900 shadow-sm">
+            <i data-lucide="shield-check" class="w-4 h-4 text-amber-600"></i> Leader Login
+          </button>
+          <button id="login-tab-supplier" onclick="setLoginRole('supplier')" class="py-2.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900">
+            <i data-lucide="user-check" class="w-4 h-4 text-emerald-700"></i> Supplier Login
+          </button>
+        </div>
+
+        <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+          <div>
+            <label id="login-user-label" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Leader Username</label>
+            <div class="relative">
+              <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
+              <input id="login-username" type="text" required placeholder="Enter username (e.g., sinan)"
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent" />
+            </div>
+            <p id="supplier-hint" class="hidden text-[11px] text-slate-400 mt-1">Use your own name (e.g., Shameem, Favas, Abdul Hadi, Mufeed)</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Password / PIN</label>
+            <div class="relative">
+              <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
+              <input id="login-password" type="password" required placeholder="Enter password"
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent" />
+            </div>
+          </div>
+
+          <div id="login-error" class="hidden bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold px-3.5 py-2.5 rounded-xl flex items-center gap-2">
+            <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+            <span id="login-error-text">Invalid credentials.</span>
+          </div>
+
+          <button type="submit" class="w-full py-3 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow-lg shadow-emerald-900/20 transition flex items-center justify-center gap-2">
+            <span>Sign In to Dashboard</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP CONTAINER -->
+  <div id="app-shell" class="hidden flex-1 flex flex-col">
+    <!-- TOP HEADER -->
+    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-900 text-amber-300 flex items-center justify-center shadow-sm">
+            <i data-lucide="utensils-crossed" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="font-extrabold text-slate-900 text-base sm:text-lg leading-tight">Usthad Food Supply</h1>
+              <span id="role-badge" class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">Leader</span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-medium hidden sm:block">College Dining Duty, Substitution & Effort Analytics</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- Date Selector -->
+          <div class="hidden md:flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+            <i data-lucide="calendar" class="w-3.5 h-3.5 text-emerald-700"></i>
+            <input type="date" id="active-date" onchange="changeDate(this.value)" class="bg-transparent text-xs font-bold text-slate-700 focus:outline-none" />
+          </div>
+
+          <!-- Admin Edit Toggle (Leader Only) -->
+          <button id="admin-edit-btn" onclick="toggleAdminMode()" class="hidden items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 transition">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            <span id="admin-edit-label">Admin Edit: OFF</span>
+          </button>
+
+          <!-- User Pill & Logout -->
+          <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
+            <div class="text-right hidden sm:block">
+              <div id="current-user-name" class="text-xs font-extrabold text-slate-800">Sinan</div>
+              <div id="current-user-sub" class="text-[10px] text-slate-500 font-semibold">Team Coordinator</div>
+            </div>
+            <button onclick="logout()" title="Logout" class="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- NAVIGATION TABS -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-2 overflow-x-auto border-t border-slate-100">
+        <button onclick="switchTab('tracker')" id="nav-tracker" class="tab-active px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition">
+          <i data-lucide="check-square" class="w-4 h-4"></i> Daily Supply Tracker
+        </button>
+        <button onclick="switchTab('sections')" id="nav-sections" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 flex items-center gap-1.5 whitespace-nowrap transition">
+          <i data-lucide="users" class="w-4 h-4"></i> Sections & Leave Subs
+        </button>
+        <button onclick="switchTab('analytics')" id="nav-analytics" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 flex items-center gap-1.5 whitespace-nowrap transition">
+          <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Effort & Tea Analytics
+        </button>
+        <button onclick="switchTab('passwords')" id="nav-passwords" class="hidden px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 items-center gap-1.5 whitespace-nowrap transition">
+          <i data-lucide="key-round" class="w-4 h-4 text-amber-600"></i> Passwords & Access
+        </button>
+      </div>
+    </header>
+
+    <!-- ADMIN BANNER -->
+    <div id="admin-banner" class="hidden bg-amber-500 text-slate-950 text-xs font-bold py-2 px-4 text-center shadow-inner">
+      <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-3">
+        <span class="flex items-center gap-1.5"><i data-lucide="sparkles" class="w-4 h-4"></i> ADMIN EDIT MODE ACTIVE — Click any section, timing, supplier name, or bonus score to edit live.</span>
+        <button onclick="resetAllData()" class="underline text-slate-900 hover:text-black font-extrabold">Reset Default Roster</button>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+      <!-- VIEW 1: DAILY SUPPLY TRACKER -->
+      <section id="view-tracker" class="space-y-6">
+        <!-- Mobile Date Bar -->
+        <div class="flex md:hidden items-center justify-between bg-white p-3 rounded-2xl border border-slate-200">
+          <span class="text-xs font-bold text-slate-600">Tracking Date:</span>
+          <input type="date" id="active-date-mobile" onchange="changeDate(this.value)" class="text-xs font-extrabold text-emerald-900 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200" />
+        </div>
+
+        <!-- 5 FOOD TIMINGS SELECTOR -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" id="meal-selector-grid"></div>
+
+        <!-- ACTIVE MEAL BRIEFING CARD -->
+        <div class="glass-card rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div class="space-y-1.5">
+            <div class="flex flex-wrap items-center gap-2">
+              <span id="meal-badge-time" class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 font-extrabold text-xs">6:00 AM</span>
+              <span id="meal-badge-loc" class="px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-bold text-xs">Canteen Staff Room</span>
+              <span id="meal-badge-mode" class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-bold text-xs">All Combined (No Categories)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <h2 id="meal-title" class="text-xl sm:text-2xl font-extrabold text-slate-900">Morning Tea</h2>
+              <button onclick="editCurrentMeal()" class="admin-only hidden p-1.5 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200" title="Edit Timing Details">
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+            <p id="meal-duties-desc" class="text-xs sm:text-sm text-slate-600 font-medium">Duties: Taking tea from canteen staff room, tea distribution, and glass return.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
+            <div class="px-3 border-r border-slate-200">
+              <div class="text-[10px] font-bold uppercase text-slate-400">Active Suppliers</div>
+              <div id="stat-active-count" class="text-lg font-extrabold text-emerald-800">11</div>
+            </div>
+            <div class="px-3 border-r border-slate-200">
+              <div class="text-[10px] font-bold uppercase text-slate-400">Completed Duties</div>
+              <div id="stat-completed-count" class="text-lg font-extrabold text-slate-900">0 / 11</div>
+            </div>
+            <div class="px-3">
+              <div class="text-[10px] font-bold uppercase text-slate-400">On Leave</div>
+              <div id="stat-leave-count" class="text-lg font-extrabold text-rose-600">3</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUPPLIER CHECKLIST CONTAINER -->
+        <div id="tracker-sections-container" class="space-y-6"></div>
+      </section>
+
+      <!-- VIEW 2: SECTIONS & LEAVE SUBSTITUTION MANAGER -->
+      <section id="view-sections" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200">
+          <div>
+            <h2 class="text-xl font-extrabold text-slate-900">College Sections & Leave Substitution</h2>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Manage Usthads count per section, active suppliers, leave durations, and extra pool replacements.</p>
+          </div>
+          <button onclick="openAddSupplierModal()" class="leader-only hidden px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm self-start">
+            <i data-lucide="user-plus" class="w-4 h-4"></i> Add Supplier
+          </button>
+        </div>
+
+        <div id="sections-management-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+      </section>
+
+      <!-- VIEW 3: EFFORT & SHARED TEA ANALYTICS -->
+      <section id="view-analytics" class="hidden space-y-6">
+        <!-- Top Insight Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="analytics-kpi-grid"></div>
+
+        <!-- Shared Tea & Glass Washing Spotlight -->
+        <div class="glass-card rounded-3xl p-6 shadow-sm space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <span class="text-[11px] font-extrabold uppercase tracking-wider text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full">Shared Success Recognition</span>
+              <h3 class="text-lg font-extrabold text-slate-900 mt-1">Morning & Evening Tea + Glass Washing Participation</h3>
+              <p class="text-xs text-slate-500">Recognizes team members who step up for shared tea serving, glass return, and evening glass washing vs. those lagging behind.</p>
+            </div>
+          </div>
+          <div id="tea-recognition-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+        </div>
+
+        <!-- Full Leaderboard Table -->
+        <div class="glass-card rounded-3xl overflow-hidden shadow-sm">
+          <div class="p-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 class="text-lg font-extrabold text-slate-900">Supplier Effort & Punctuality Leaderboard</h3>
+              <p class="text-xs text-slate-500">Live performance scoring combining duty completion, early canteen arrival, and shared tea/glass effort.</p>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+                  <th class="py-3.5 px-4">Rank</th>
+                  <th class="py-3.5 px-4">Supplier</th>
+                  <th class="py-3.5 px-4">Section / Assignment</th>
+                  <th class="py-3.5 px-4 text-center">Duties Done</th>
+                  <th class="py-3.5 px-4 text-center">1st / Early</th>
+                  <th class="py-3.5 px-4 text-center">Tea & Glass</th>
+                  <th class="py-3.5 px-4 text-center">Admin Bonus</th>
+                  <th class="py-3.5 px-4 text-right">Total Score & Status</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: PASSWORDS & ACCESS MANAGER (LEADER ONLY) -->
+      <section id="view-passwords" class="hidden space-y-6">
+        <div class="glass-card rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-extrabold uppercase">Leader Control</span>
+              <h2 class="text-xl font-extrabold text-slate-900">Supplier Passwords & Login Credentials</h2>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">Each supplier logs in using their own name. Generate a fresh 4-digit PIN or set a custom password and copy to share via WhatsApp.</p>
+          </div>
+          <button onclick="generateAllPins()" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs flex items-center gap-1.5 shadow-sm self-start">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Regenerate All Supplier PINs
+          </button>
+        </div>
+
+        <div id="passwords-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL FOR LEAVE / SUBSTITUTION / EDITING -->
+  <div id="modal-backdrop" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="modal-title" class="text-lg font-extrabold text-slate-900">Manage Supplier</h3>
+        <button onclick="closeModal()" class="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="modal-body" class="space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl items-center gap-2">
+    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toast-msg">Saved!</span>
+  </div>
+
+  <script>
+    // ================= INITIAL DATA MODEL =================
+    const DEFAULT_DATA = {
+      leader: { username: 'sinan', password: '8606', name: 'Sinan' },
+      sections: [
+        { id: 'sec-1', name: 'Main Section', usthads: '8 Usthads', color: 'emerald' },
+        { id: 'sec-2', name: 'Second Section', usthads: '25+ Usthads', color: 'teal' },
+        { id: 'sec-3', name: 'Third Section', usthads: '15+ Usthads', color: 'amber' },
+        { id: 'sec-extra', name: 'Extra Reserve Pool', usthads: 'Standby / Relief', color: 'slate' }
+      ],
+      meals: [
+        {
+          id: 'morning',
+          name: 'Morning Tea',
+          time: '6:00 AM',
+          location: 'Canteen Staff Room',
+          combined: true,
+          dutiesDesc: 'All included (no categories): Taking tea from canteen staff room, tea distribution, and glass return.',
+          tasks: [
+            { id: 'tea_fetch', label: 'Tea Taken & Served', points: 15, isTeaGlass: true },
+            { id: 'glass_return', label: 'Glass Returned', points: 10, isTeaGlass: true }
+          ]
+        },
+        {
+          id: 'nasta',
+          name: 'Nasta (Breakfast)',
+          time: '8:25 AM',
+          location: 'Canteen',
+          combined: false,
+          dutiesDesc: 'Section-wise serving from canteen. Note who arrived 1st or reached early.',
+          tasks: [
+            { id: 'served', label: 'Food Served', points: 15, isTeaGlass: false },
+            { id: 'arrived_first', label: '1st / Early Arrival', points: 10, isEarly: true }
+          ]
+        },
+        {
+          id: 'afternoon',
+          name: 'Afternoon Lunch',
+          time: '1:15 PM',
+          location: 'Canteen',
+          combined: false,
+          dutiesDesc: 'Section-wise lunch serving from canteen. Track early arrival & active service.',
+          tasks: [
+            { id: 'served', label: 'Lunch Served', points: 15, isTeaGlass: false },
+            { id: 'arrived_first', label: '1st / Early Arrival', points: 10, isEarly: true }
+          ]
+        },
+        {
+          id: 'evening',
+          name: 'Evening Tea',
+          time: '4:30 PM',
+          location: 'Staff Room',
+          combined: true,
+          dutiesDesc: 'Shared evening tea from staff room including glass collection & washing glasses after tea.',
+          tasks: [
+            { id: 'tea_served', label: 'Tea Served', points: 15, isTeaGlass: true },
+            { id: 'glass_washed', label: 'Glasses Washed', points: 15, isTeaGlass: true }
+          ]
+        },
+        {
+          id: 'night',
+          name: 'Night Dinner',
+          time: 'Night',
+          location: 'Canteen (All Together)',
+          combined: true,
+          dutiesDesc: 'All suppliers working together in the same place at the canteen.',
+          tasks: [
+            { id: 'dinner_served', label: 'Dinner Served', points: 15, isTeaGlass: false },
+            { id: 'arrived_first', label: '1st / Early Arrival', points: 10, isEarly: true }
+          ]
+        }
+      ],
+      suppliers: [
+        // Main Section
+        { id: 'sup-sinan', name: 'Sinan', sectionId: 'sec-1', role: 'Leader & Supplier', onLeave: false, leaveNote: '', subForId: null, pin: '8606', bonusPoints: 5 },
+        { id: 'sup-shameem', name: 'Shameem', sectionId: 'sec-1', role: 'Supplier', onLeave: false, leaveNote: '', subForId: null, pin: '4120', bonusPoints: 0 },
+
+        // Second Section
+        { id: 'sup-hadi', name: 'Abdul Hadi', sectionId: 'sec-2', role: 'Supplier', onLeave: false, leaveNote: '', subForId: null, pin: '5391', bonusPoints: 0 },
+        { id: 'sup-fayis', name: 'Fayis', sectionId: 'sec-2', role: 'Supplier', onLeave: false, leaveNote: '', subForId: null, pin: '7284', bonusPoints: 0 },
+        { id: 'sup-favas', name: 'Favas', sectionId: 'sec-2', role: 'Substitute Supplier', onLeave: false, leaveNote: '', subForId: 'sup-nihal', pin: '6195', bonusPoints: 5 },
+        { id: 'sup-jazeel', name: 'Jazeel', sectionId: 'sec-2', role: 'Substitute Supplier', onLeave: false, leaveNote: '', subForId: 'sup-faiz', pin: '3847', bonusPoints: 5 },
+        { id: 'sup-afnas', name: 'Afnas', sectionId: 'sec-2', role: 'Supplier', onLeave: false, leaveNote: '', subForId: null, pin: '9052', bonusPoints: 0 },
+        { id: 'sup-nihal', name: 'Nihal PH', sectionId: 'sec-2', role: 'Appointed Supplier', onLeave: true, leaveNote: '2 Weeks Leave (Sub: Favas)', subForId: null, pin: '2468', bonusPoints: 0 },
+        { id: 'sup-faiz', name: 'Faiz', sectionId: 'sec-2', role: 'Appointed Supplier', onLeave: true, leaveNote: '2 Weeks Leave (Sub: Jazeel)', subForId: null, pin: '1357', bonusPoints: 0 },
+
+        // Third Section
+        { id: 'sup-mufeed', name: 'Mufeed', sectionId: 'sec-3', role: 'Supplier', onLeave: false, leaveNote: '', subForId: null, pin: '8472', bonusPoints: 0 },
+        { id: 'sup-ashmil', name: 'Ashmil', sectionId: 'sec-3', role: 'Supplier', onLeave: false, leaveNote: '', subForId: null, pin: '6539', bonusPoints: 0 },
+        { id: 'sup-aslam', name: 'Aslam', sectionId: 'sec-3', role: 'Appointed Supplier', onLeave: true, leaveNote: '2 Months Leave', subForId: null, pin: '7914', bonusPoints: 0 },
+
+        // Extra Suppliers
+        { id: 'sup-uvais', name: 'Uvais', sectionId: 'sec-extra', role: 'Extra Supplier', onLeave: false, leaveNote: '', subForId: null, pin: '3108', bonusPoints: 0 },
+        { id: 'sup-aman', name: 'Aman', sectionId: 'sec-extra', role: 'Extra Supplier', onLeave: false, leaveNote: '', subForId: null, pin: '5824', bonusPoints: 0 }
+      ],
+      logs: {} // keyed by date -> mealId -> supplierId -> { taskId: boolean }
+    };
+
+    const STORAGE_KEY = 'usthad_supply_tracker_v2';
+    let state = loadState();
+    let session = null; // { role: 'leader' | 'supplier', supplierId: string, name: string }
+    let selectedLoginRole = 'leader';
+    let activeTab = 'tracker';
+    let activeMealId = 'morning';
+    let activeDate = new Date().toISOString().split('T')[0];
+    let adminEditMode = false;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return JSON.parse(JSON.stringify(DEFAULT_DATA));
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      t.classList.remove('hidden');
+      t.classList.add('flex');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        t.classList.add('hidden');
+        t.classList.remove('flex');
+      }, 2600);
+    }
+
+    // ================= AUTHENTICATION =================
+    function setLoginRole(role) {
+      selectedLoginRole = role;
+      const leaderBtn = document.getElementById('login-tab-leader');
+      const supplierBtn = document.getElementById('login-tab-supplier');
+      const label = document.getElementById('login-user-label');
+      const input = document.getElementById('login-username');
+      const hint = document.getElementById('supplier-hint');
+
+      document.getElementById('login-error').classList.add('hidden');
+
+      if (role === 'leader') {
+        leaderBtn.className = 'py-2.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 bg-white text-emerald-900 shadow-sm';
+        supplierBtn.className = 'py-2.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900';
+        label.textContent = 'Leader Username';
+        input.placeholder = 'sinan';
+        hint.classList.add('hidden');
+      } else {
+        supplierBtn.className = 'py-2.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 bg-white text-emerald-900 shadow-sm';
+        leaderBtn.className = 'py-2.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900';
+        label.textContent = 'Supplier Name (Username)';
+        input.placeholder = 'Enter your own name (e.g. Shameem)';
+        hint.classList.remove('hidden');
+      }
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const uname = document.getElementById('login-username').value.trim();
+      const pwd = document.getElementById('login-password').value.trim();
+      const errBox = document.getElementById('login-error');
+      const errText = document.getElementById('login-error-text');
+
+      if (selectedLoginRole === 'leader') {
+        if (uname.toLowerCase() === state.leader.username.toLowerCase() && pwd === state.leader.password) {
+          session = { role: 'leader', supplierId: 'sup-sinan', name: 'Sinan' };
+          enterApp();
+        } else {
+          errText.textContent = 'Invalid Leader username or password.';
+          errBox.classList.remove('hidden');
+        }
+      } else {
+        const match = state.suppliers.find(s => s.name.toLowerCase() === uname.toLowerCase() && s.id !== 'sup-sinan');
+        if (!match) {
+          errText.textContent = 'Supplier name not found. Check spelling with Leader Sinan.';
+          errBox.classList.remove('hidden');
+        } else if (match.pin !== pwd) {
+          errText.textContent = 'Incorrect password/PIN. Ask Leader Sinan for your password.';
+          errBox.classList.remove('hidden');
+        } else {
+          session = { role: 'supplier', supplierId: match.id, name: match.name };
+          enterApp();
+        }
+      }
+    }
+
+    function enterApp() {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app-shell').classList.remove('hidden');
+
+      document.getElementById('active-date').value = activeDate;
+      document.getElementById('active-date-mobile').value = activeDate;
+
+      const isLeader = session.role === 'leader';
+      document.getElementById('current-user-name').textContent = session.name;
+      document.getElementById('current-user-sub').textContent = isLeader ? 'Leader & Supplier' : 'Supply Team Member';
+
+      const badge = document.getElementById('role-badge');
+      badge.textContent = isLeader ? 'Leader Admin' : 'Supplier';
+      badge.className = isLeader
+        ? 'text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300'
+        : 'text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300';
+
+      // Show/Hide Leader-only controls
+      const adminBtn = document.getElementById('admin-edit-btn');
+      const passTab = document.getElementById('nav-passwords');
+      if (isLeader) {
+        adminBtn.classList.remove('hidden');
+        adminBtn.classList.add('flex');
+        passTab.classList.remove('hidden');
+        passTab.classList.add('flex');
+      } else {
+        adminBtn.classList.add('hidden');
+        adminBtn.classList.remove('flex');
+        passTab.classList.add('hidden');
+        passTab.classList.remove('flex');
+        adminEditMode = false;
+      }
+
+      document.querySelectorAll('.leader-only').forEach(el => {
+        el.classList.toggle('hidden', !isLeader);
+      });
+
+      switchTab('tracker');
+      lucide.createIcons();
+    }
+
+    function logout() {
+      session = null;
+      adminEditMode = false;
+      document.getElementById('login-password').value = '';
+      document.getElementById('login-error').classList.add('hidden');
+      document.getElementById('app-shell').classList.add('hidden');
+      document.getElementById('login-screen').classList.remove('hidden');
+    }
+
+    // ================= NAVIGATION & ADMIN EDIT =================
+    function switchTab(tab) {
+      activeTab = tab;
+      ['tracker', 'sections', 'analytics', 'passwords'].forEach(t => {
+        const nav = document.getElementById('nav-' + t);
+        const view = document.getElementById('view-' + t);
+        if (!nav || !view) return;
+        if (t === tab) {
+          nav.classList.add('tab-active');
+          nav.classList.remove('text-slate-600', 'hover:bg-slate-100');
+          view.classList.remove('hidden');
+        } else {
+          nav.classList.remove('tab-active');
+          nav.classList.add('text-slate-600', 'hover:bg-slate-100');
+          view.classList.add('hidden');
+        }
+      });
+
+      if (tab === 'tracker') renderTracker();
+      if (tab === 'sections') renderSectionsManager();
+      if (tab === 'analytics') renderAnalytics();
+      if (tab === 'passwords') renderPasswordsManager();
+      lucide.createIcons();
+    }
+
+    function toggleAdminMode() {
+      if (session?.role !== 'leader') return;
+      adminEditMode = !adminEditMode;
+      const btn = document.getElementById('admin-edit-btn');
+      const label = document.getElementById('admin-edit-label');
+      const banner = document.getElementById('admin-banner');
+
+      if (adminEditMode) {
+        btn.classList.add('admin-glow', 'bg-amber-400', 'text-slate-950');
+        label.textContent = 'Admin Edit: ON';
+        banner.classList.remove('hidden');
+      } else {
+        btn.classList.remove('admin-glow', 'bg-amber-400', 'text-slate-950');
+        label.textContent = 'Admin Edit: OFF';
+        banner.classList.add('hidden');
+      }
+
+      switchTab(activeTab);
+    }
+
+    function changeDate(val) {
+      if (!val) return;
+      activeDate = val;
+      document.getElementById('active-date').value = val;
+      document.getElementById('active-date-mobile').value = val;
+      renderTracker();
+    }
+
+    // ================= TRACKER LOGIC =================
+    function getTaskStatus(date, mealId, supplierId, taskId) {
+      return !!(state.logs?.[date]?.[mealId]?.[supplierId]?.[taskId]);
+    }
+
+    function toggleTask(mealId, supplierId, taskId) {
+      // Permission check: Leader can edit anyone; Supplier can only check their own
+      if (session.role !== 'leader' && session.supplierId !== supplierId) {
+        showToast('You can only mark your own duties.');
+        return;
+      }
+      if (!state.logs[activeDate]) state.logs[activeDate] = {};
+      if (!state.logs[activeDate][mealId]) state.logs[activeDate][mealId] = {};
+      if (!state.logs[activeDate][mealId][supplierId]) state.logs[activeDate][mealId][supplierId] = {};
+
+      const current = !!state.logs[activeDate][mealId][supplierId][taskId];
+      state.logs[activeDate][mealId][supplierId][taskId] = !current;
+      saveState();
+      renderTracker();
+    }
+
+    function renderTracker() {
+      // Render 5 Meal Pills
+      const mealGrid = document.getElementById('meal-selector-grid');
+      mealGrid.innerHTML = state.meals.map(m => {
+        const isActive = m.id === activeMealId;
+        return `
+          <button onclick="selectMeal('${m.id}')" class="p-3.5 rounded-2xl border text-left transition flex flex-col justify-between ${isActive ? 'meal-pill-active' : 'bg-white border-slate-200 hover:border-emerald-400 text-slate-800'}">
+            <div class="flex items-center justify-between w-full mb-1.5">
+              <span class="text-[11px] font-extrabold uppercase tracking-wider ${isActive ? 'text-amber-300' : 'text-emerald-700'}">${m.time}</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${isActive ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-500'}">${m.combined ? 'All' : 'Sections'}</span>
+            </div>
+            <div class="font-extrabold text-sm leading-snug">${m.name}</div>
+          </button>
+        `;
+      }).join('');
+
+      const meal = state.meals.find(m => m.id === activeMealId) || state.meals[0];
+      document.getElementById('meal-badge-time').textContent = meal.time;
+      document.getElementById('meal-badge-loc').textContent = meal.location;
+      document.getElementById('meal-badge-mode').textContent = meal.combined ? 'All Combined (No Categories)' : 'Section-Wise Distribution';
+      document.getElementById('meal-title').textContent = meal.name;
+      document.getElementById('meal-duties-desc').textContent = meal.dutiesDesc;
+
+      document.querySelectorAll('.admin-only').forEach(el => {
+        el.classList.toggle('hidden', !adminEditMode);
+      });
+
+      // Stats
+      const activeSuppliers = state.suppliers.filter(s => !s.onLeave && s.sectionId !== 'sec-extra' || (!s.onLeave && s.subForId));
+      // Actually include extra suppliers in combined meals (Morning, Evening, Night) if active
+      const eligibleSuppliers = state.suppliers.filter(s => {
+        if (s.onLeave) return false;
+        if (meal.combined) return true; // All active suppliers participate in Morning, Evening, Night
+        return s.sectionId !== 'sec-extra' || s.subForId;
+      });
+
+      const leaveCount = state.suppliers.filter(s => s.onLeave).length;
+      let completedSuppliers = 0;
+      eligibleSuppliers.forEach(s => {
+        const primaryTask = meal.tasks[0];
+        if (primaryTask && getTaskStatus(activeDate, meal.id, s.id, primaryTask.id)) {
+          completedSuppliers++;
+        }
+      });
+
+      document.getElementById('stat-active-count').textContent = eligibleSuppliers.length;
+      document.getElementById('stat-completed-count').textContent = `${completedSuppliers} / ${eligibleSuppliers.length}`;
+      document.getElementById('stat-leave-count').textContent = leaveCount;
+
+      const container = document.getElementById('tracker-sections-container');
+
+      if (meal.combined) {
+        // Unified view for Morning Tea, Evening Tea, and Night Dinner
+        container.innerHTML = `
+          <div class="glass-card rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 class="font-extrabold text-slate-900 text-base">Combined Team Checklist — ${meal.name}</h3>
+                <p class="text-xs text-slate-500">Everyone works together without section separation. Mark who completed serving, glass return/washing, or early arrival.</p>
+              </div>
+              <span class="text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">${eligibleSuppliers.length} Active</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              ${eligibleSuppliers.map(s => renderSupplierDutyCard(s, meal, true)).join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        // Categorized by the 3 main sections for Nasta & Afternoon Lunch
+        const mainSections = state.sections.filter(sec => sec.id !== 'sec-extra');
+        container.innerHTML = mainSections.map(sec => {
+          const secSuppliers = state.suppliers.filter(s => s.sectionId === sec.id);
+          return `
+            <div class="glass-card rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-3 h-3 rounded-full bg-emerald-600"></span>
+                  <h3 class="font-extrabold text-slate-900 text-base">${sec.name}</h3>
+                  <span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">${sec.usthads}</span>
+                  ${adminEditMode ? `<button onclick="editSectionModal('${sec.id}')" class="p-1 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>` : ''}
+                </div>
+                <span class="text-xs font-bold text-slate-500">${secSuppliers.filter(s => !s.onLeave).length} Active Suppliers</span>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                ${secSuppliers.map(s => renderSupplierDutyCard(s, meal, false)).join('')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      lucide.createIcons();
+    }
+
+    function renderSupplierDutyCard(sup, meal, showSectionTag) {
+      const sec = state.sections.find(x => x.id === sup.sectionId);
+      const subTarget = sup.subForId ? state.suppliers.find(x => x.id === sup.subForId) : null;
+      const isMe = session.supplierId === sup.id;
+      const canEdit = session.role === 'leader' || isMe;
+
+      if (sup.onLeave) {
+        return `
+          <div class="p-4 rounded-2xl border border-rose-200 bg-rose-50/60 flex flex-col justify-between opacity-80">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <div class="font-extrabold text-slate-700 text-sm line-through">${sup.name}</div>
+                <div class="text-[11px] font-bold text-rose-600 mt-0.5">${sup.leaveNote || 'On Leave'}</div>
+              </div>
+              <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-extrabold uppercase">On Leave</span>
+            </div>
+            ${session.role === 'leader' ? `<button onclick="openSupplierModal('${sup.id}')" class="mt-3 text-[11px] font-bold text-emerald-800 underline text-left">Manage Leave / Sub</button>` : ''}
+          </div>
+        `;
+      }
+
+      return `
+        <div class="p-4 rounded-2xl border ${isMe ? 'border-emerald-400 bg-emerald-50/30' : 'border-slate-200 bg-white'} hover:border-emerald-300 transition flex flex-col justify-between gap-3">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-extrabold text-slate-900 text-sm">${sup.name}</span>
+                ${isMe ? '<span class="px-1.5 py-0.5 rounded bg-emerald-700 text-white text-[9px] font-extrabold uppercase">You</span>' : ''}
+                ${sup.id === 'sup-sinan' ? '<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-extrabold uppercase">Leader</span>' : ''}
+              </div>
+              <div class="flex flex-wrap items-center gap-1.5 mt-1">
+                ${showSectionTag && sec ? `<span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">${sec.name}</span>` : ''}
+                ${subTarget ? `<span class="text-[10px] font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md">Sub for ${subTarget.name}</span>` : ''}
+              </div>
+            </div>
+            ${adminEditMode ? `<button onclick="openSupplierModal('${sup.id}')" class="p-1.5 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200" title="Edit Supplier"><i data-lucide="edit-2" class="w-3.5 h-3.5"></i></button>` : ''}
+          </div>
+
+          <div class="flex flex-wrap gap-2 pt-1">
+            ${meal.tasks.map(t => {
+              const checked = getTaskStatus(activeDate, meal.id, sup.id, t.id);
+              const activeClass = t.isEarly
+                ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
+                : 'bg-emerald-700 text-white border-emerald-700 shadow-sm';
+              return `
+                <button
+                  onclick="toggleTask('${meal.id}', '${sup.id}', '${t.id}')"
+                  ${!canEdit ? 'disabled' : ''}
+                  class="flex-1 min-w-[115px] py-2 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${checked ? activeClass : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'} ${!canEdit ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}"
+                >
+                  <i data-lucide="${checked ? 'check-circle-2' : 'circle'}" class="w-3.5 h-3.5 shrink-0"></i>
+                  <span class="truncate">${t.label}</span>
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function selectMeal(mealId) {
+      activeMealId = mealId;
+      renderTracker();
+    }
+
+    // ================= SECTIONS & LEAVE SUBSTITUTION =================
+    function renderSectionsManager() {
+      const grid = document.getElementById('sections-management-grid');
+      const isLeader = session.role === 'leader';
+
+      grid.innerHTML = state.sections.map(sec => {
+        const members = state.suppliers.filter(s => s.sectionId === sec.id);
+        return `
+          <div class="glass-card rounded-3xl p-6 shadow-sm space-y-4">
+            <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-lg font-extrabold text-slate-900">${sec.name}</h3>
+                  <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-xs font-extrabold">${sec.usthads}</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">${members.filter(m => !m.onLeave).length} Active • ${members.filter(m => m.onLeave).length} On Leave</p>
+              </div>
+              ${isLeader ? `<button onclick="editSectionModal('${sec.id}')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-amber-100 text-slate-700 hover:text-amber-900 text-xs font-bold flex items-center gap-1"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Edit</button>` : ''}
+            </div>
+
+            <div class="space-y-2.5">
+              ${members.map(m => {
+                const subFor = m.subForId ? state.suppliers.find(x => x.id === m.subForId) : null;
+                return `
+                  <div class="p-3.5 rounded-2xl border ${m.onLeave ? 'border-rose-200 bg-rose-50/50' : 'border-slate-200 bg-white'} flex items-center justify-between gap-3">
+                    <div>
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-extrabold text-sm ${m.onLeave ? 'text-slate-500 line-through' : 'text-slate-900'}">${m.name}</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">${m.role}</span>
+                        ${subFor ? `<span class="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-teal-100 text-teal-900">Behalf of ${subFor.name}</span>` : ''}
+                      </div>
+                      ${m.onLeave ? `<div class="text-xs font-bold text-rose-600 mt-1">Leave Status: ${m.leaveNote || 'On Leave'}</div>` : ''}
+                    </div>
+                    ${isLeader ? `
+                      <button onclick="openSupplierModal('${m.id}')" class="px-3 py-1.5 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-xs font-bold text-slate-700 transition shrink-0">
+                        Reassign / Leave
+                      </button>
+                    ` : ''}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    // ================= ANALYTICS & LEADERBOARD =================
+    function computeSupplierMetrics() {
+      const dates = Object.keys(state.logs);
+      return state.suppliers.map(sup => {
+        let dutiesDone = 0;
+        let earlyCount = 0;
+        let teaGlassCount = 0;
+        let taskPoints = 0;
+
+        dates.forEach(d => {
+          state.meals.forEach(m => {
+            m.tasks.forEach(t => {
+              if (getTaskStatus(d, m.id, sup.id, t.id)) {
+                taskPoints += (t.points || 10);
+                if (t.isEarly) earlyCount++;
+                else dutiesDone++;
+                if (t.isTeaGlass) teaGlassCount++;
+              }
+            });
+          });
+        });
+
+        const totalScore = taskPoints + (sup.bonusPoints || 0);
+        return {
+          ...sup,
+          dutiesDone,
+          earlyCount,
+          teaGlassCount,
+          totalScore
+        };
+      }).sort((a, b) => b.totalScore - a.totalScore);
+    }
+
+    function renderAnalytics() {
+      const metrics = computeSupplierMetrics();
+      const activeMetrics = metrics.filter(m => !m.onLeave);
+
+      const topPerformer = activeMetrics[0] || { name: '—', totalScore: 0 };
+      const fastestSupplier = [...activeMetrics].sort((a, b) => b.earlyCount - a.earlyCount)[0] || { name: '—', earlyCount: 0 };
+      const teaChampion = [...activeMetrics].sort((a, b) => b.teaGlassCount - a.teaGlassCount)[0] || { name: '—', teaGlassCount: 0 };
+      const needsPush = [...activeMetrics].reverse()[0] || { name: '—', totalScore: 0 };
+
+      document.getElementById('analytics-kpi-grid').innerHTML = `
+        <div class="glass-card rounded-3xl p-5 border-l-4 border-l-emerald-600">
+          <div class="text-[11px] font-extrabold uppercase text-slate-400">Top Work Performer</div>
+          <div class="text-xl font-extrabold text-slate-900 mt-1">${topPerformer.name}</div>
+          <div class="text-xs font-bold text-emerald-700 mt-1">${topPerformer.totalScore} Effort Points</div>
+        </div>
+        <div class="glass-card rounded-3xl p-5 border-l-4 border-l-amber-500">
+          <div class="text-[11px] font-extrabold uppercase text-slate-400">Fastest Canteen Arrival</div>
+          <div class="text-xl font-extrabold text-slate-900 mt-1">${fastestSupplier.name}</div>
+          <div class="text-xs font-bold text-amber-700 mt-1">${fastestSupplier.earlyCount}x 1st / Early Badges</div>
+        </div>
+        <div class="glass-card rounded-3xl p-5 border-l-4 border-l-teal-600">
+          <div class="text-[11px] font-extrabold uppercase text-slate-400">Tea & Glass Champion</div>
+          <div class="text-xl font-extrabold text-slate-900 mt-1">${teaChampion.name}</div>
+          <div class="text-xs font-bold text-teal-700 mt-1">${teaChampion.teaGlassCount} Shared Tea/Wash Tasks</div>
+        </div>
+        <div class="glass-card rounded-3xl p-5 border-l-4 border-l-rose-500">
+          <div class="text-[11px] font-extrabold uppercase text-slate-400">Needs Encouragement</div>
+          <div class="text-xl font-extrabold text-slate-900 mt-1">${needsPush.name}</div>
+          <div class="text-xs font-bold text-rose-600 mt-1">${needsPush.totalScore} Pts — Low Activity</div>
+        </div>
+      `;
+
+      // Shared Tea & Glass Washing Spotlight
+      document.getElementById('tea-recognition-grid').innerHTML = activeMetrics.map(m => {
+        const badge = m.teaGlassCount >= 2
+          ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">Active Contributor</span>'
+          : m.teaGlassCount === 1
+          ? '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold">Partial</span>'
+          : '<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-extrabold">Not Yet Served</span>';
+        return `
+          <div class="p-3.5 rounded-2xl border border-slate-200 bg-white flex items-center justify-between gap-2">
+            <div>
+              <div class="font-extrabold text-sm text-slate-900">${m.name}</div>
+              <div class="text-[11px] text-slate-500 font-semibold">Morning/Evening Tea & Wash: <strong class="text-slate-800">${m.teaGlassCount}</strong></div>
+            </div>
+            ${badge}
+          </div>
+        `;
+      }).join('');
+
+      // Full Leaderboard Table
+      const avgScore = activeMetrics.length ? activeMetrics.reduce((acc, x) => acc + x.totalScore, 0) / activeMetrics.length : 0;
+      document.getElementById('leaderboard-tbody').innerHTML = metrics.map((m, idx) => {
+        const sec = state.sections.find(s => s.id === m.sectionId);
+        let statusPill = '';
+        if (m.onLeave) {
+          statusPill = '<span class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 text-[11px] font-bold">On Leave</span>';
+        } else if (m.totalScore >= avgScore && m.totalScore > 0) {
+          statusPill = '<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-extrabold">Hardworking</span>';
+        } else if (m.totalScore > 0) {
+          statusPill = '<span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-extrabold">Average</span>';
+        } else {
+          statusPill = '<span class="px-2.5 py-1 rounded-full bg-rose-100 text-rose-700 text-[11px] font-extrabold">Slow / Pending</span>';
+        }
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-3.5 px-4 font-extrabold text-slate-500">#${idx + 1}</td>
+            <td class="py-3.5 px-4 font-extrabold text-slate-900">${m.name}</td>
+            <td class="py-3.5 px-4 text-xs font-semibold text-slate-600">${sec ? sec.name : '—'}</td>
+            <td class="py-3.5 px-4 text-center font-bold text-slate-800">${m.dutiesDone}</td>
+            <td class="py-3.5 px-4 text-center font-bold text-amber-700">${m.earlyCount}</td>
+            <td class="py-3.5 px-4 text-center font-bold text-teal-700">${m.teaGlassCount}</td>
+            <td class="py-3.5 px-4 text-center">
+              <span class="font-bold text-slate-700">+${m.bonusPoints || 0}</span>
+              ${session.role === 'leader' ? `<button onclick="adjustBonus('${m.id}', 5)" class="ml-1.5 px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 text-[10px] font-extrabold">+5</button>` : ''}
+            </td>
+            <td class="py-3.5 px-4 text-right space-x-2">
+              <span class="font-extrabold text-slate-900">${m.totalScore} pts</span>
+              ${statusPill}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function adjustBonus(supplierId, delta) {
+      if (session.role !== 'leader') return;
+      const sup = state.suppliers.find(s => s.id === supplierId);
+      if (!sup) return;
+      sup.bonusPoints = (sup.bonusPoints || 0) + delta;
+      saveState();
+      renderAnalytics();
+      showToast(`Added +${delta} bonus points to ${sup.name}`);
+    }
+
+    // ================= PASSWORDS & ACCESS MANAGER (LEADER ONLY) =================
+    function renderPasswordsManager() {
+      if (session.role !== 'leader') return;
+      const grid = document.getElementById('passwords-grid');
+      const suppliersList = state.suppliers.filter(s => s.id !== 'sup-sinan');
+
+      grid.innerHTML = suppliersList.map(s => {
+        const sec = state.sections.find(x => x.id === s.sectionId);
+        return `
+          <div class="glass-card rounded-3xl p-5 shadow-sm flex flex-col justify-between gap-4 border ${s.onLeave ? 'border-rose-200' : 'border-slate-200'}">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <h3 class="font-extrabold text-base text-slate-900">${s.name}</h3>
+                <p class="text-xs text-slate-500 font-semibold">${sec ? sec.name : ''} ${s.onLeave ? '• <span class="text-rose-600">On Leave</span>' : ''}</p>
+              </div>
+              <button onclick="copyCredentials('${s.name}', '${s.pin}')" class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-bold flex items-center gap-1 border border-emerald-200">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
+              </button>
+            </div>
+
+            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-500 font-semibold">Login Name:</span>
+                <span class="font-extrabold text-slate-900">${s.name}</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-500 font-semibold">Password / PIN:</span>
+                <span class="font-mono font-extrabold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-lg text-sm">${s.pin}</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button onclick="regeneratePin('${s.id}')" class="flex-1 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-1.5">
+                <i data-lucide="shuffle" class="w-3.5 h-3.5"></i> Generate PIN
+              </button>
+              <button onclick="setCustomPinPrompt('${s.id}')" class="py-2 px-3 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold">
+                Custom
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function regeneratePin(supplierId) {
+      const sup = state.suppliers.find(s => s.id === supplierId);
+      if (!sup) return;
+      sup.pin = String(Math.floor(1000 + Math.random() * 9000));
+      saveState();
+      renderPasswordsManager();
+      showToast(`New PIN generated for ${sup.name}: ${sup.pin}`);
+    }
+
+    function generateAllPins() {
+      state.suppliers.forEach(s => {
+        if (s.id !== 'sup-sinan') {
+          s.pin = String(Math.floor(1000 + Math.random() * 9000));
+        }
+      });
+      saveState();
+      renderPasswordsManager();
+      showToast('All supplier PINs regenerated!');
+    }
+
+    function setCustomPinPrompt(supplierId) {
+      const sup = state.suppliers.find(s => s.id === supplierId);
+      if (!sup) return;
+      document.getElementById('modal-title').textContent = `Set Password for ${sup.name}`;
+      document.getElementById('modal-body').innerHTML = `
+        <form onsubmit="saveCustomPin(event, '${sup.id}')" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">New Password / PIN</label>
+            <input id="custom-pin-input" type="text" value="${sup.pin}" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold" />
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-800 text-white text-xs font-bold">Save Password</button>
+        </form>
+      `;
+      openModal();
+    }
+
+    function saveCustomPin(e, supplierId) {
+      e.preventDefault();
+      const val = document.getElementById('custom-pin-input').value.trim();
+      if (!val) return;
+      const sup = state.suppliers.find(s => s.id === supplierId);
+      sup.pin = val;
+      saveState();
+      closeModal();
+      renderPasswordsManager();
+      showToast(`Password updated for ${sup.name}`);
+    }
+
+    function copyCredentials(name, pin) {
+      const text = `Usthad Food Supply Login\nRole: Supplier\nUsername: ${name}\nPassword: ${pin}`;
+      navigator.clipboard?.writeText(text);
+      showToast(`Copied login details for ${name}!`);
+    }
+
+    // ================= MODALS FOR ADMIN EDIT & LEAVE SUBSTITUTION =================
+    function openModal() {
+      document.getElementById('modal-backdrop').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeModal() {
+      document.getElementById('modal-backdrop').classList.add('hidden');
+    }
+
+    function openSupplierModal(supplierId) {
+      if (session.role !== 'leader') return;
+      const sup = state.suppliers.find(s => s.id === supplierId);
+      if (!sup) return;
+
+      const otherSuppliers = state.suppliers.filter(s => s.id !== sup.id);
+
+      document.getElementById('modal-title').textContent = `Edit & Reassign: ${sup.name}`;
+      document.getElementById('modal-body').innerHTML = `
+        <form onsubmit="saveSupplierChanges(event, '${sup.id}')" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Supplier Name</label>
+            <input id="edit-sup-name" type="text" value="${sup.name}" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Assigned Section</label>
+            <select id="edit-sup-section" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold">
+              ${state.sections.map(sec => `<option value="${sec.id}" ${sec.id === sup.sectionId ? 'selected' : ''}>${sec.name} (${sec.usthads})</option>`).join('')}
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Substituting Behalf Of (Optional)</label>
+            <select id="edit-sup-subfor" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold">
+              <option value="">— Regular Duty (Not Substituting) —</option>
+              ${otherSuppliers.map(o => `<option value="${o.id}" ${o.id === sup.subForId ? 'selected' : ''}>Behalf of ${o.name}</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 space-y-2.5">
+            <label class="flex items-center gap-2 text-xs font-extrabold text-rose-900 cursor-pointer">
+              <input id="edit-sup-leave" type="checkbox" ${sup.onLeave ? 'checked' : ''} class="w-4 h-4 rounded text-rose-600" />
+              <span>Mark Supplier as On Leave</span>
+            </label>
+            <input id="edit-sup-leavenote" type="text" value="${sup.leaveNote || ''}" placeholder="Leave reason/duration (e.g., 2 Weeks Leave)" class="w-full px-3 py-2 rounded-xl border border-rose-200 bg-white text-xs font-semibold" />
+          </div>
+
+          <div class="flex items-center gap-2 pt-2">
+            <button type="submit" class="flex-1 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold">Save Changes</button>
+            ${sup.id !== 'sup-sinan' ? `<button type="button" onclick="deleteSupplier('${sup.id}')" class="px-3.5 py-2.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-bold">Remove</button>` : ''}
+          </div>
+        </form>
+      `;
+      openModal();
+    }
+
+    function saveSupplierChanges(e, supplierId) {
+      e.preventDefault();
+      const sup = state.suppliers.find(s => s.id === supplierId);
+      if (!sup) return;
+      sup.name = document.getElementById('edit-sup-name').value.trim();
+      sup.sectionId = document.getElementById('edit-sup-section').value;
+      sup.subForId = document.getElementById('edit-sup-subfor').value || null;
+      sup.onLeave = document.getElementById('edit-sup-leave').checked;
+      sup.leaveNote = document.getElementById('edit-sup-leavenote').value.trim();
+      sup.role = sup.subForId ? 'Substitute Supplier' : (sup.id === 'sup-sinan' ? 'Leader & Supplier' : 'Supplier');
+
+      saveState();
+      closeModal();
+      switchTab(activeTab);
+      showToast(`Updated ${sup.name}`);
+    }
+
+    function deleteSupplier(supplierId) {
+      state.suppliers = state.suppliers.filter(s => s.id !== supplierId);
+      saveState();
+      closeModal();
+      switchTab(activeTab);
+      showToast('Supplier removed.');
+    }
+
+    function openAddSupplierModal() {
+      if (session.role !== 'leader') return;
+      document.getElementById('modal-title').textContent = 'Add New Supplier';
+      document.getElementById('modal-body').innerHTML = `
+        <form onsubmit="addNewSupplier(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Supplier Name</label>
+            <input id="new-sup-name" type="text" required placeholder="Enter supplier name" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Assign Section</label>
+            <select id="new-sup-section" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold">
+              ${state.sections.map(sec => `<option value="${sec.id}">${sec.name}</option>`).join('')}
+            </select>
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-800 text-white text-xs font-bold">Add Supplier & Generate PIN</button>
+        </form>
+      `;
+      openModal();
+    }
+
+    function addNewSupplier(e) {
+      e.preventDefault();
+      const name = document.getElementById('new-sup-name').value.trim();
+      const sectionId = document.getElementById('new-sup-section').value;
+      const pin = String(Math.floor(1000 + Math.random() * 9000));
+      state.suppliers.push({
+        id: 'sup-' + Date.now(),
+        name,
+        sectionId,
+        role: 'Supplier',
+        onLeave: false,
+        leaveNote: '',
+        subForId: null,
+        pin,
+        bonusPoints: 0
+      });
+      saveState();
+      closeModal();
+      switchTab(activeTab);
+      showToast(`Added ${name} (PIN: ${pin})`);
+    }
+
+    function editSectionModal(sectionId) {
+      if (session.role !== 'leader') return;
+      const sec = state.sections.find(s => s.id === sectionId);
+      if (!sec) return;
+      document.getElementById('modal-title').textContent = `Edit ${sec.name}`;
+      document.getElementById('modal-body').innerHTML = `
+        <form onsubmit="saveSectionEdit(event, '${sec.id}')" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Section Title</label>
+            <input id="edit-sec-name" type="text" value="${sec.name}" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Usthads Count Label</label>
+            <input id="edit-sec-usthads" type="text" value="${sec.usthads}" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-800 text-white text-xs font-bold">Save Section</button>
+        </form>
+      `;
+      openModal();
+    }
+
+    function saveSectionEdit(e, sectionId) {
+      e.preventDefault();
+      const sec = state.sections.find(s => s.id === sectionId);
+      sec.name = document.getElementById('edit-sec-name').value.trim();
+      sec.usthads = document.getElementById('edit-sec-usthads').value.trim();
+      saveState();
+      closeModal();
+      switchTab(activeTab);
+      showToast('Section updated.');
+    }
+
+    function editCurrentMeal() {
+      if (session.role !== 'leader') return;
+      const meal = state.meals.find(m => m.id === activeMealId);
+      if (!meal) return;
+      document.getElementById('modal-title').textContent = `Edit Timing: ${meal.name}`;
+      document.getElementById('modal-body').innerHTML = `
+        <form onsubmit="saveMealEdit(event, '${meal.id}')" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Meal Title</label>
+            <input id="edit-meal-name" type="text" value="${meal.name}" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Time</label>
+              <input id="edit-meal-time" type="text" value="${meal.time}" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Location</label>
+              <input id="edit-meal-loc" type="text" value="${meal.location}" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Duties Description</label>
+            <textarea id="edit-meal-desc" rows="2" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold">${meal.dutiesDesc}</textarea>
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-800 text-white text-xs font-bold">Save Timing</button>
+        </form>
+      `;
+      openModal();
+    }
+
+    function saveMealEdit(e, mealId) {
+      e.preventDefault();
+      const meal = state.meals.find(m => m.id === mealId);
+      meal.name = document.getElementById('edit-meal-name').value.trim();
+      meal.time = document.getElementById('edit-meal-time').value.trim();
+      meal.location = document.getElementById('edit-meal-loc').value.trim();
+      meal.dutiesDesc = document.getElementById('edit-meal-desc').value.trim();
+      saveState();
+      closeModal();
+      renderTracker();
+      showToast('Meal timing updated.');
+    }
+
+    function resetAllData() {
+      state = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      saveState();
+      switchTab(activeTab);
+      showToast('Reset to default team & sections.');
+    }
+
+    // Initialize icons on load
+    lucide.createIcons();
+  </script>
+</body>
+</html>
